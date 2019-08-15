@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
+    <style>
+      #messages {
+        height: 300px;
+      }
+      .chat-message {
+        margin-left: 1.5em;
+        margin-right: 1em;
+      }
+      footer {
+        position: fixed;
+        bottom: 0px;
+        width: 100%;
+        text-align: center;
+      }
+    </style>
+
+    <title>Realtime Chat with MongoDB</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 offset-md-3 col-sm-12">
+          <br />
+          <h3 class="text-center">
+            Realtime Chat with MongoDB <br />
+            <button id="clear" class="btn bth-danger">Clear</button>
+          </h3>
+          <div id="status"></div>
+          <div class="chat">
+            <!-- username input msg -->
+            <input
+              type="text"
+              id="username"
+              class="form-control"
+              placeholder="Enter name .."
+            /><br />
+            <div class="card"><div id="messages" class="card-block"></div></div>
+            <br />
+            <textarea
+              id="textarea"
+              class="form-control"
+              placeholder="Enter message .."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+      <footer>by Patarawan Ongkasuwan</footer>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js"></script>
+    <script>
+      (function() {
+        var element = function(id) {
+          return document.getElementById(id);
+        };
+        // Get element
+        var status = element("status");
+        var messages = element("messages");
+        var textarea = element("textarea");
+        var username = element("username");
+        var clearBtn = element("clear");
+
+        // Set default status
+        var statusDefault = status.textContent;
+
+        var setStatus = function(s) {
+          //set status
+          status.textContent = s;
+
+          if (s !== statusDefault) {
+            var delay = setTimeout(function() {
+              setStatus(statusDefault);
+            }, 400);
+          }
+        };
+        //connect to socket.io
+        var socket = io.connect("http://127.0.0.1:4000");
+
+        //Check for connection
+        if (socket !== undefined) {
+          console.log("Connected to socket....");
+
+          // Handle output
+          socket.on("output", function(data) {
+            // DEBUG: console.log(data);
+            if (data.length) {
+              for (var x = 0; x < data.length; x++) {
+                // build out message
+                var message = document.createElement("div");
+                message.setAttribute("class", "chat-message");
+                message.textContent = data[x].name + ": " + data[x].message;
+                messages.appendChild(message);
+                // recently msg on top
+                messages.insertBefore(message, messages.firstChild);
+              }
+            }
+          });
+          // Get status from server
+          socket.on("status", function(data) {
+            //get message status
+            setStatus(typeof data === "object" ? data.message : data);
+
+            //Check if status = clear then clear
+            if (data.clear) {
+              textarea.value = "";
+            }
+          });
+          // Handle input
+          textarea.addEventListener("keydown", function(event) {
+            // send to server when hit Enter
+            if (event.which === 13 && event.shiftKey == false) {
+              // this is enter or return key w/o holding shift
+              // Emit to sserver
+              socket.emit("input", {
+                name: username.value,
+                message: textarea.value
+              });
+              (textarea.value = ""),
+                // no refresh
+                event.preventDefault();
+            }
+          });
+          // Handle Chat clear
+          clearBtn.addEventListener("click", function() {
+            socket.emit("clear");
+            window.location.reload();
+          });
+          //clear Message
+          socket.on("cleared", function() {
+            messages.textContent = "";
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
