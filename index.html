@@ -45,14 +45,25 @@
               id="username"
               class="form-control"
               placeholder="Enter name .."
-            /><br />
+            />
+            <button id="p01" value="Ar1">Ar1</button>
+            <button id="p02" value="Ar2">Ar2</button>
+            <button id="p03" value="Ar3">Ar3</button>
+            <button id="p04" value="Ar4">Ar4</button>
+            <button id="p05" value="Ar5">Ar5</button>
+            <button id="p06" value="Ar6">Ar6</button>
+            <button id="p07" value="Ar7">Ar7</button>
+            <button id="p08" value="Ar8">Ar8</button>
+
+            <br />
             <div class="card"><div id="messages" class="card-block"></div></div>
             <br />
-            <textarea
+            <input
+              type="number"
               id="textarea"
               class="form-control"
               placeholder="Enter message .."
-            ></textarea>
+            />
           </div>
         </div>
       </div>
@@ -86,6 +97,8 @@
         };
         //connect to socket.io
         var socket = io.connect("http://127.0.0.1:4000");
+        let already = [];
+        let aperiod = "";
 
         //Check for connection
         if (socket !== undefined) {
@@ -93,16 +106,23 @@
 
           // Handle output
           socket.on("output", function(data) {
-            // DEBUG: console.log(data);
+            // DEBUG: console.log(data.length);
             if (data.length) {
               for (var x = 0; x < data.length; x++) {
+                console.log(data[x].Keys);
+
                 // build out message
+                // DEBUG:
+                // console.log(data[x].Keys[0].name);
                 var message = document.createElement("div");
                 message.setAttribute("class", "chat-message");
-                message.textContent = data[x].name + ": " + data[x].message;
+                message.textContent =
+                  data[x].Keys[0].name + ": " + data[x].Keys[0].message;
                 messages.appendChild(message);
                 // recently msg on top
                 messages.insertBefore(message, messages.firstChild);
+                already.push(data[x].Keys[0].message);
+                aperiod = data[x].room;
               }
             }
           });
@@ -117,18 +137,32 @@
             }
           });
           // Handle input
+
           textarea.addEventListener("keydown", function(event) {
             // send to server when hit Enter
+
             if (event.which === 13 && event.shiftKey == false) {
               // this is enter or return key w/o holding shift
-              // Emit to sserver
-              socket.emit("input", {
-                name: username.value,
-                message: textarea.value
-              });
-              (textarea.value = ""),
-                // no refresh
-                event.preventDefault();
+              // Check input NOT never add with .includes
+              // console.log(period.value == aperiod);
+              prev = parseInt(already[already.length - 1]);
+              console.log(parseInt(textarea.value) > prev);
+              if (already.includes(textarea.value)) {
+              } else {
+                if (parseInt(textarea.value) > prev) {
+                  // Emit to server
+                  console.log(aperiod);
+                  socket.emit("input", {
+                    name: username.value,
+                    message: textarea.value,
+                    room: aperiod
+                  });
+                  (textarea.value = ""),
+                    // no refresh
+                    event.preventDefault();
+                } else {
+                }
+              }
             }
           });
           // Handle Chat clear
@@ -136,6 +170,22 @@
             socket.emit("clear");
             window.location.reload();
           });
+          // Button room
+          roomBtn = (id, value) => {
+            id.addEventListener("click", () => {
+              socket.emit("input-room", { room: value });
+              window.location.reload();
+            });
+          };
+          roomBtn(p01, "Ar1");
+          roomBtn(p02, "Ar2");
+          roomBtn(p03, "Ar3");
+          roomBtn(p04, "Ar4");
+          roomBtn(p05, "Ar5");
+          roomBtn(p06, "Ar6");
+          roomBtn(p07, "Ar7");
+          roomBtn(p08, "Ar8");
+
           //clear Message
           socket.on("cleared", function() {
             messages.textContent = "";
